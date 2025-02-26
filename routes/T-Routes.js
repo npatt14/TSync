@@ -41,7 +41,8 @@ router.post("/tasks", async (req, res, next) => {
     }
 }); 
 
-router.put("/tasks/:id", (req, res) => {
+router.put("/tasks/:id", async (req, res, next) => {
+    try {
     const { id } = req.params;
     const { completed } = req.body;
 
@@ -50,19 +51,38 @@ router.put("/tasks/:id", (req, res) => {
 
     task.completed = completed !== undefined ? completed : task.completed;
 
+    await req.redisClient.del("tasks"); // clear cache
+
     res.json(task);
+    } catch (error) {
+        next(error);
+    }
 });
 
-router.delete("/tasks/:id", (req, res) => {
+router.delete("/tasks/:id", async (req, res, next) => {
+    try {
     const { id } = req.params;
     tasks = tasks.filter((t) => t.id != id);
 
+    await req.redisClient.del("tasks");
+
     res.status(200).json({ message: "Task deleted :D" });
+    } catch(error) {
+        next(error);
+    }
 });
 
 // long polling for real time updates
 router.get("/tasks/updates", (req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
     subscribers.push(res);
-})
+
+    req.on("close", () => {
+        subscribers = subscribers.filter((sub) => sub !== res);
+    });
+});
 
 module.exports = router;
