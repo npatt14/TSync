@@ -44,17 +44,25 @@ if (cluster.isMaster) {
     app.use(express.json());
     app.use((req, res, next) => {
         req.redisClient = redisClient; // attach redis to req
-    })
+        next();
+    });
+
+    app.use("/api", tRoutes);
+    app.use(errorHandler)
+
+    app.get("/", (req, res) => res.send("Tsync API running... :D"));
+    const server = app.listen (PORT, () => console.log(`Worker ${process.pid} running on port: ${PORT}`));
+
+    // graceful shutdown - cleanup redis, etc
+    process.on("SIGTERM", async () => {
+        console.log("Closing server gracefully.. :P");
+        await redisClient.quit();
+        server.close(() => process.exit(0));
+    });
 }
 
 
 
-app.use(express.json());
-app.use("/api", tRoutes)
-app.use(errorHandler);
 
-app.get("/", (req, res) => {
-    res.send("TSync API running...");
-});
 
-app.listen(PORT, () => console.log(`Server running on port: ${PORT}`));
+
