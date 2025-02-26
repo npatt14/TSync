@@ -5,11 +5,24 @@ const router = express.Router();
 let tasks = [];
 let subscribers = [];
 
-router.get("/tasks", (req, res) => {
-    res.json(tasks);
+router.get("/tasks", async (req, res, next) => {
+    try {
+        const redisClient = req.redisClient
+        const cachedTasks = await redisClient.get("tasks");
+
+        if (cacheTasks) {
+            return res.json(JSON.parse(cachedTasks)); // return cached dataaaa
+        }
+
+        res.json(tasks);
+        await redisClient.setEx("tasks", 60, JSON.stringify(tasks)); // cache for 60 sec
+    } catch(error) {
+        next(error);
+    }
 });
 
-router.post("/tasks", (req, res) => {
+router.post("/tasks", async (req, res, next) => {
+    try {
     const { title, description } = req.body;
     if (!title) return res.status(400).json({ error: "title is required :D" });
 
@@ -20,7 +33,12 @@ router.post("/tasks", (req, res) => {
     subscribers.forEach((res) => res.json(newTask));
     subscribers = [];
 
+    await req.redisClient.del("tasks");
+
     res.status(201).json(newTask)
+    } catch(error) {
+        next(error);
+    }
 }); 
 
 router.put("/tasks/:id", (req, res) => {
