@@ -43,3 +43,8 @@ router.delete("/tasks/:id", (req, res) => {
 });
 
 // long polling for real time updates
+router.get("/tasks/updates", (req, res) => {
+    subscribers.push(res);
+})
+
+module.exports = router;
