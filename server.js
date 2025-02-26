@@ -36,6 +36,15 @@ if (cluster.isMaster) {
         message: { error: "Too many reqs, please try again later :D" },
     });
     app.use(limiter);
+
+    // redis client setup
+    const redisClient = redis.createClient();
+    redisClient.connect().catch(console.error);
+
+    app.use(express.json());
+    app.use((req, res, next) => {
+        req.redisClient = redisClient; // attach redis to req
+    })
 }
 
 
