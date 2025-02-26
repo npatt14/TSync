@@ -14,5 +14,24 @@ router.post("/tasks", (req, res) => {
     if (!title) return res.status(400).json({ error: "title is required :D" });
 
     const newTask = { id: Date.now(), title, description, completed: false }; 
+    tasks.push(newTask);
 
-})
+    // notify long polling subscribers
+    subscribers.forEach((res) => res.json(newTask));
+    subscribers = [];
+
+    res.status(201).json(newTask)
+}); 
+
+router.put("/tasks/:id", (req, res) => {
+    const { id } = req.params;
+    const { completed } = req.body;
+
+    const task = tasks.find((t) => t.id == id);
+    if (!task) return res.status(404).json({ error:"Task not found" });
+
+    task.completed = completed !== undefined ? completed : task.completed;
+
+    res.json(task);
+});
+
