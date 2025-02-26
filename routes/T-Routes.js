@@ -35,3 +35,11 @@ router.put("/tasks/:id", (req, res) => {
     res.json(task);
 });
 
+router.delete("/tasks/:id", (req, res) => {
+    const { id } = req.params;
+    tasks = tasks.filter((t) => t.id != id);
+
+    res.status(200).json({ message: "Task deleted :D" });
+});
+
+// long polling for real time updates
